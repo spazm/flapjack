@@ -53,22 +53,23 @@ module Flapjack
       !type_klass.nil?
     end
 
-    def self.create(type, opts = {})
+    def self.create(name, type, opts = {})
       pikelet = nil
       [Flapjack::Pikelet::Generic,
        Flapjack::Pikelet::Resque,
        Flapjack::Pikelet::Thin].each do |kl|
         next unless kl::PIKELET_TYPES[type]
-        break if pikelet = kl.create(type, opts)
+        break if pikelet = kl.create(name, type, opts)
       end
       pikelet
     end
 
     class Base
-      attr_reader :type, :status
+      attr_reader :name, :type, :status
 
-      def initialize(type, pikelet_class, opts = {})
-        @type = type
+      def initialize(name, type, pikelet_class, opts = {})
+        @name  = name
+        @type  = type
         @klass = pikelet_class
 
         @config = opts[:config] || {}
@@ -76,7 +77,7 @@ module Flapjack
         @boot_time = opts[:boot_time]
         @coordinator = opts[:coordinator]
 
-        @logger = Flapjack::Logger.new("flapjack-#{type}", @config['logger'])
+        @logger = Flapjack::Logger.new("flapjack-#{type}-#{name}", @config['logger'])
 
         @status = 'initialized'
       end
@@ -112,15 +113,15 @@ module Flapjack
                       'pagerduty'  => Flapjack::Gateways::Pagerduty,
                       'oobetet'    => Flapjack::Gateways::Oobetet}
 
-      def self.create(type, opts = {})
-        self.new(type, PIKELET_TYPES[type], :config => opts[:config],
+      def self.create(name, type, opts = {})
+        self.new(name, type, PIKELET_TYPES[type], :config => opts[:config],
           :redis_config => opts[:redis_config],
           :boot_time => opts[:boot_time],
           :coordinator => opts[:coordinator])
       end
 
-      def initialize(type, pikelet_klass, opts = {})
-        super(type, pikelet_klass, opts)
+      def initialize(name, type, pikelet_klass, opts = {})
+        super(name, type, pikelet_klass, opts)
 
         configure_resque if type == 'notifier'
 
@@ -159,14 +160,14 @@ module Flapjack
       PIKELET_TYPES = {'email' => Flapjack::Gateways::Email,
                        'sms'   => Flapjack::Gateways::SmsMessagenet}
 
-      def self.create(type, opts = {})
-        self.new(type, PIKELET_TYPES[type], :config => opts[:config],
+      def self.create(name, type, opts = {})
+        self.new(name, type, PIKELET_TYPES[type], :config => opts[:config],
           :redis_config => opts[:redis_config],
           :boot_time => opts[:boot_time])
       end
 
-      def initialize(type, pikelet_klass, opts = {})
-        super(type, pikelet_klass, opts)
+      def initialize(name, type, pikelet_klass, opts = {})
+        super(name, type, pikelet_klass, opts)
 
         configure_resque
 
@@ -221,15 +222,15 @@ module Flapjack
                        'api'     => Flapjack::Gateways::API,
                        'jsonapi' => Flapjack::Gateways::JSONAPI}
 
-      def self.create(type, opts = {})
+      def self.create(name, type, opts = {})
         ::Thin::Logging.silent = true
-        self.new(type, PIKELET_TYPES[type], :config => opts[:config],
+        self.new(name, type, PIKELET_TYPES[type], :config => opts[:config],
           :redis_config => opts[:redis_config],
           :boot_time => opts[:boot_time])
       end
 
-      def initialize(type, pikelet_klass, opts = {})
-        super(type, pikelet_klass, opts)
+      def initialize(name, type, pikelet_klass, opts = {})
+        super(name, type, pikelet_klass, opts)
 
         pikelet_klass.instance_variable_set('@config', @config)
         pikelet_klass.instance_variable_set('@redis_config', @redis_config)

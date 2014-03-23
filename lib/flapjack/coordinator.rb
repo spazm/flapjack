@@ -128,9 +128,9 @@ module Flapjack
 
     # passed a hash with {PIKELET_TYPE => PIKELET_CFG, ...}
     def add_pikelets(pikelets_data = {})
-      pikelets_data.each_pair do |type, cfg|
-        next unless pikelet = Flapjack::Pikelet.create(type,
-          :config => cfg, :redis_config => @redis_options,
+      pikelets_data.each_pair do |name, cfg|
+        next unless pikelet = Flapjack::Pikelet.create(name,
+          cfg['type'], :config => cfg, :redis_config => @redis_options,
           :boot_time => @boot_time)
 
         @pikelets << pikelet
@@ -149,7 +149,7 @@ module Flapjack
           pik.update_status
           status = pik.status
           next if old_status.eql?(status)
-          @logger.info "#{pik.type}: #{old_status} -> #{status}"
+          @logger.info "#{pik.name} (#{pik.type}): #{old_status} -> #{status}"
         end
 
         if piks.any? {|p| p.status == 'stopping' }
@@ -177,18 +177,21 @@ module Flapjack
             merged = exec_cfg.merge(config_env[k])
             config.update(k => merged) if merged['enabled']
           else
-            config.update(k => exec_cfg)
+            config.update(k => exec_cfg.dup)
           end
+          config[k]['type'] = k if config.has_key?(k)
         else
           next unless (config_env.has_key?(k) && config_env[k]['enabled'])
           config.update(k => config_env[k])
+          config[k]['type'] = k
         end
       end
 
       return config unless config_env && config_env['gateways'] &&
         !config_env['gateways'].nil?
       config.merge( config_env['gateways'].select {|k, v|
-        Flapjack::Pikelet.is_pikelet?(k) && v['enabled']
+        v['type'] ||= k
+        Flapjack::Pikelet.is_pikelet?(v['type']) && v['enabled']
       } )
     end
 

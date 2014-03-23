@@ -28,7 +28,7 @@ describe Flapjack::Coordinator do
     expect(Time).to receive(:now).and_return(time)
 
     fc = Flapjack::Coordinator.new(config)
-    expect(Flapjack::Pikelet).to receive(:create).with('processor',
+    expect(Flapjack::Pikelet).to receive(:create).with('processor', 'processor',
         :config => cfg['processor'], :redis_config => {}, :boot_time => time).
       and_return(processor)
 
@@ -61,7 +61,7 @@ describe Flapjack::Coordinator do
     expect(Time).to receive(:now).and_return(time)
 
     fc = Flapjack::Coordinator.new(config)
-    expect(Flapjack::Pikelet).to receive(:create).with('processor',
+    expect(Flapjack::Pikelet).to receive(:create).with('processor', 'processor',
         :config => cfg['processor'], :redis_config => {}, :boot_time => time)
       .and_return(processor)
 
@@ -85,7 +85,7 @@ describe Flapjack::Coordinator do
     expect(processor).to receive(:update_status)
     expect(processor).to receive(:status).exactly(3).times.and_return('stopped')
 
-    notifier = double('processor')
+    notifier = double('notifier')
     expect(notifier).to receive(:start)
     expect(notifier).to receive(:stop)
     expect(notifier).to receive(:update_status)
@@ -94,11 +94,13 @@ describe Flapjack::Coordinator do
     expect(Time).to receive(:now).and_return(time)
 
     fc = Flapjack::Coordinator.new(config)
-    expect(Flapjack::Pikelet).to receive(:create).with('processor',
-        :config => cfg['executive'], :redis_config => {}, :boot_time => time).
+    expect(Flapjack::Pikelet).to receive(:create).with('processor', 'processor',
+        :config => cfg['executive'].merge('type' => 'processor'),
+        :redis_config => {}, :boot_time => time).
       and_return(processor)
-    expect(Flapjack::Pikelet).to receive(:create).with('notifier',
-        :config => cfg['executive'], :redis_config => {}, :boot_time => time).
+    expect(Flapjack::Pikelet).to receive(:create).with('notifier', 'notifier',
+        :config => cfg['executive'].merge('type' => 'notifier'),
+        :redis_config => {}, :boot_time => time).
       and_return(notifier)
 
     expect(EM).to receive(:stop)
@@ -130,8 +132,8 @@ describe Flapjack::Coordinator do
     expect(Time).to receive(:now).and_return(time)
 
     fc = Flapjack::Coordinator.new(config)
-    expect(Flapjack::Pikelet).to receive(:create).with('processor',
-        :config => cfg['executive'].merge(cfg['processor']),
+    expect(Flapjack::Pikelet).to receive(:create).with('processor', 'processor',
+        :config => cfg['executive'].merge(cfg['processor']).merge('type' => 'processor'),
         :redis_config => {}, :boot_time => time).
       and_return(processor)
 
@@ -209,7 +211,7 @@ describe Flapjack::Coordinator do
 
     jabber = double('jabber')
     expect(Flapjack::Pikelet).to receive(:create).
-      with('jabber', :config => {"enabled" => true}, :redis_config => {},
+      with('jabber', 'jabber', :config => {"enabled" => true, 'type' => 'jabber'}, :redis_config => {},
         :boot_time => time).
       and_return(jabber)
     expect(jabber).to receive(:start)
@@ -280,7 +282,7 @@ describe Flapjack::Coordinator do
     fc = Flapjack::Coordinator.new(config)
 
     expect(Flapjack::Pikelet).to receive(:create).
-      with('processor', :config => new_cfg['processor'], :redis_config => {},
+      with('processor', 'processor', :config => new_cfg['processor'], :redis_config => {},
         :boot_time => time).
       and_return(new_exec)
 

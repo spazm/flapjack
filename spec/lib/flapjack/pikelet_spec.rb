@@ -32,7 +32,29 @@ describe Flapjack::Pikelet do
     expect(fiber).to receive(:resume)
     expect(Fiber).to receive(:new).and_yield.and_return(fiber)
 
-    pik = Flapjack::Pikelet.create('processor', :config => config,
+    pik = Flapjack::Pikelet.create('processor', 'processor', :config => config,
+      :redis_config => redis_config, :boot_time => time, :coordinator => fc)
+    expect(pik).to be_a(Flapjack::Pikelet::Generic)
+    pik.start
+  end
+
+  it 'creates and starts a jabber pikelet with a non-default name (custom type)' do
+    expect(Flapjack::Logger).to receive(:new).and_return(logger)
+
+    expect(config).to receive(:[]).with('logger').and_return(nil)
+
+    fc = double('coordinator')
+
+    hipchat = double('hipchat')
+    expect(hipchat).to receive(:start)
+    expect(Flapjack::Gateways::Jabber).to receive(:new).with(:config => config,
+        :redis_config => redis_config, :boot_time => time, :logger => logger, :coordinator => fc).
+      and_return(hipchat)
+
+    expect(fiber).to receive(:resume)
+    expect(Fiber).to receive(:new).and_yield.and_return(fiber)
+
+    pik = Flapjack::Pikelet.create('hipchat', 'jabber', :config => config,
       :redis_config => redis_config, :boot_time => time, :coordinator => fc)
     expect(pik).to be_a(Flapjack::Pikelet::Generic)
     pik.start
@@ -64,7 +86,7 @@ describe Flapjack::Pikelet do
     expect(fiber).to receive(:resume)
     expect(Fiber).to receive(:new).and_yield.and_return(fiber)
 
-    pik = Flapjack::Pikelet.create('email', :config => config,
+    pik = Flapjack::Pikelet.create('email', 'email', :config => config,
       :redis_config => redis_config)
     expect(pik).to be_a(Flapjack::Pikelet::Resque)
     pik.start
@@ -94,7 +116,7 @@ describe Flapjack::Pikelet do
 
     expect(Flapjack::Gateways::Web).to receive(:start)
 
-    pik = Flapjack::Pikelet.create('web', :config => config,
+    pik = Flapjack::Pikelet.create('web', 'web', :config => config,
       :redis_config => redis_config)
     expect(pik).to be_a(Flapjack::Pikelet::Thin)
     pik.start
